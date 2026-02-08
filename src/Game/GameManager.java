@@ -27,9 +27,9 @@ public class GameManager extends JFrame implements ActionListener {
     // 물리 상수
     private static final int FPS = 60; // 게임 프레임 속도
     private final double GRAVITY = 0.5; // 중력 가속도
-    private final int JUMP_POWER = -8; // 튀어오르는 힘 (위쪽이 -y 방향)
+    private final int JUMP_POWER = -10; // 튀어오르는 힘 (위쪽이 -y 방향)
     private final int MOVE_SPEED = 5; // 좌우 이동 속도
-    private final int TILE_SIZE;
+    private int TILE_SIZE;
     
 
     private GameManager() {
@@ -42,11 +42,7 @@ public class GameManager extends JFrame implements ActionListener {
         timer = new Timer(1000 / FPS, this);
         gamePanel = new GamePanel();
         this.add(gamePanel);
-     
-        Map mapData = new Map(1);
-        this.ball = mapData.getInitialBall();
-        this.blocks = mapData.getBlocks();
-        TILE_SIZE = mapData.getTileSize();
+        initMap();
         
         addKeyListener(new KeyAdapter() {
             @Override
@@ -102,6 +98,13 @@ public class GameManager extends JFrame implements ActionListener {
 		}
     }
     
+    private void initMap() {
+    	Map mapData = new Map(1);
+        this.ball = mapData.getInitialBall();
+        this.blocks = mapData.getBlocks();
+        TILE_SIZE = mapData.getTileSize();
+    }
+    
     private void checkCollision() {
         // 공의 현재 영역 계산
         Rectangle ballRect = new Rectangle(ball.getX(), ball.getY(), ball.getR() * 2, ball.getR() * 2);
@@ -117,6 +120,48 @@ public class GameManager extends JFrame implements ActionListener {
         }
     }
     
+    // X축 충돌 (옆면)
+    private void checkHorizontalCollision() {
+        Rectangle ballRect = new Rectangle(ball.getX(), ball.getY(), ball.getR() * 2, ball.getR() * 2);
+        
+        for (Block b : blocks) {
+            if (ballRect.intersects(b.getBounds())) {
+                // 공의 중심 X좌표와 블록의 중심 X좌표 비교
+                double ballCenterX = ball.getX() + ball.getR();
+                double blockCenterX = b.getX() + (TILE_SIZE / 2.0);
+
+                if (ballCenterX < blockCenterX) { // 블록의 왼쪽에서 충돌
+                    ball.setX(b.getX() - (ball.getR() * 2));
+                } else { // 블록의 오른쪽에서 충돌
+                    ball.setX(b.getX() + TILE_SIZE);
+                }
+                ball.setVx(0); // 옆면 충돌 시 멈춤
+                // 충돌했으므로 ballRect 갱신 (다음 블록과의 중복 체크 방지)
+                ballRect.setLocation(ball.getX(), ball.getY());
+            }
+        }
+    }
+
+    // Y축 충돌 (윗면/아랫면)
+    private void checkVerticalCollision() {
+        Rectangle ballRect = new Rectangle(ball.getX(), ball.getY(), ball.getR() * 2, ball.getR() * 2);
+        
+        for (Block b : blocks) {
+            if (ballRect.intersects(b.getBounds())) {
+                double ballCenterY = ball.getY() + ball.getR();
+                double blockCenterY = b.getY() + (TILE_SIZE / 2.0);
+
+                if (ballCenterY < blockCenterY) { // 블록의 위쪽에서 충돌 (밟기)
+                    ball.setY(b.getY() - (ball.getR() * 2));
+                    ball.setVy(JUMP_POWER); // 튕겨 올라감
+                } else { // 블록의 아래쪽에서 충돌 (머리 박기)
+                    ball.setY(b.getY() + TILE_SIZE);
+                    ball.setVy(0.5); // 툭 떨어짐
+                }
+                ballRect.setLocation(ball.getX(), ball.getY());
+            }
+        }
+    }
 
     public static GameManager getGameManager() {
         return instance;
@@ -128,13 +173,19 @@ public class GameManager extends JFrame implements ActionListener {
     }
 
     private void update() {
-        // 1. 중력 적용: 속도에 중력을 더함
+        // 1. 수평(X) 이동 및 충돌 체크
+        ball.setX((int)(ball.getX() + ball.getVx()));
+        checkHorizontalCollision();
+
+        // 2. 수직(Y) 이동 (중력 먼저 적용 후 이동)
         ball.setVy(ball.getVy() + GRAVITY);
-        // 2. 위치 업데이트
-        ball.setX((int)(ball.getX() + ball.getVx())); // 좌우
-        ball.setY((int)(ball.getY() + ball.getVy())); // 상하
-        // 3. 블럭과의 충돌 체크
-        checkCollision();
+        ball.setY((int)(ball.getY() + ball.getVy()));
+        checkVerticalCollision();
+        
+        // 3. 화면 바닥 낙사 방지 (임시)
+        if (ball.getY() > 900) {
+            initMap(); // 떨어지면 리스폰
+        }
     }
 
     @Override
