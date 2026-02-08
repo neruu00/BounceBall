@@ -5,18 +5,22 @@ import java.awt.Graphics;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import javax.swing.JFrame;
+import javax.swing.JPanel;
 import javax.swing.Timer;
 
 public class GameManager extends JFrame implements ActionListener {
     private static final long serialVersionUID = 1L;
+    
     private static GameManager instance = new GameManager();
+    
     private Timer timer;
     private Ball ball;
+    private GamePanel gamePanel;
     
     // 물리 상수
-    private static final int FPS = 60;
-    private final double GRAVITY = 0.5;    // 중력 가속도
-    private final int JUMP_POWER = -10;    // 튀어오르는 힘 (위쪽이 -y 방향)
+    private static final int FPS = 60; // 게임 프레임 속도
+    private final double GRAVITY = 0.5; // 중력 가속도
+    private final int JUMP_POWER = -10; // 튀어오르는 힘 (위쪽이 -y 방향)
 
     private GameManager() {
         setTitle("Bounce Ball Game!");
@@ -25,8 +29,39 @@ public class GameManager extends JFrame implements ActionListener {
         setLocationRelativeTo(null);
         setResizable(false);
         
+        gamePanel = new GamePanel();
+        this.add(gamePanel);
+        
         timer = new Timer(1000 / FPS, this);
         ball = new Ball(600, 100, 5);
+    }
+    
+    // 그리기 전용 GameManager의 내부 클래스
+    private class GamePanel extends JPanel {
+		private static final long serialVersionUID = 1L;
+
+		@Override
+        protected void paintComponent(Graphics g) {
+            super.paintComponent(g); // 이전 화면 클리어 - 깜빡임 방지
+            
+            drawBall(g); // 공 그리기
+            drawBlocks(g); // 블럭 그리기
+        }
+		
+		private void drawBall(Graphics g) {
+			g.setColor(Color.BLUE);
+            g.fillOval(ball.getX(), ball.getY(), ball.getR() * 2, ball.getR() * 2);
+		}
+		
+		private void drawBlocks(Graphics g) {
+            /**
+             * TODO - 사물 그리기 구현
+             * 현재는 바닥을 그리는 선만 하나 있어서
+             * 나중이 선 그리기는 지워야 함
+             */
+            g.setColor(Color.BLACK);
+            g.drawLine(0, 700, 1200, 700);
+		}
     }
 
     public static GameManager getGameManager() {
@@ -54,27 +89,8 @@ public class GameManager extends JFrame implements ActionListener {
     }
 
     @Override
-    public void paint(Graphics g) {
-        // 더블 버퍼링 없이 그릴 경우 화면을 먼저 지워줘야 합니다.
-        g.setColor(Color.WHITE);
-        g.fillRect(0, 0, getWidth(), getHeight());
-
-        // 바닥 선 그리기
-        g.setColor(Color.BLACK);
-        g.drawLine(0, 700, 1200, 700);
-
-        // 공 그리기
-        int x = ball.getX();
-        int y = ball.getY();
-        int diameter = ball.getR() * 2;
-
-        g.setColor(Color.BLUE);
-        g.fillOval(x, y, diameter, diameter); // drawOval 대신 색이 채워진 fillOval 사용
-    }
-
-    @Override
     public void actionPerformed(ActionEvent e) {
         update();
-        repaint();
+        gamePanel.repaint();
     }
 }
