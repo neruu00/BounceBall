@@ -5,7 +5,8 @@ import java.awt.Graphics;
 import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.util.ArrayList;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 import java.util.List;
 
 import javax.swing.JFrame;
@@ -19,34 +20,59 @@ public class GameManager extends JFrame implements ActionListener {
     
     private GamePanel gamePanel;
     private Timer timer;
-    private Ball ball;
     private List<Block> blocks;
+    private Ball ball;
+
     
     // 물리 상수
     private static final int FPS = 60; // 게임 프레임 속도
     private final double GRAVITY = 0.5; // 중력 가속도
-    private final int JUMP_POWER = -10; // 튀어오르는 힘 (위쪽이 -y 방향)
-    private final int BLOCK_SIZE; // 블럭의 사이즈
+    private final int JUMP_POWER = -8; // 튀어오르는 힘 (위쪽이 -y 방향)
+    private final int MOVE_SPEED = 5; // 좌우 이동 속도
+    private final int TILE_SIZE;
+    
 
     private GameManager() {
         setTitle("Bounce Ball Game!");
-        setSize(1200, 800);
+        setSize(1260, 860);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
         setResizable(false);
         
-        
+        timer = new Timer(1000 / FPS, this);
         gamePanel = new GamePanel();
         this.add(gamePanel);
+     
+        Map mapData = new Map(1);
+        this.ball = mapData.getInitialBall();
+        this.blocks = mapData.getBlocks();
+        TILE_SIZE = mapData.getTileSize();
         
-        timer = new Timer(1000 / FPS, this);
-        ball = new Ball(600, 100, 8);
-        
-        BLOCK_SIZE = Block.getSIZE();
-        blocks = new ArrayList<Block>();
-        for(int i = 0; i < 29; i++) {
-            blocks.add(new Block(10+i*BLOCK_SIZE, 710));
-        }
+        addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                switch (e.getKeyCode()) {
+                    case KeyEvent.VK_LEFT:
+                    case KeyEvent.VK_A:
+                        ball.setVx(-MOVE_SPEED); // 왼쪽 이동
+                        break;
+                    case KeyEvent.VK_RIGHT:
+                    case KeyEvent.VK_D:
+                        ball.setVx(MOVE_SPEED);  // 오른쪽 이동
+                        break;
+                }
+            }
+
+            @Override
+            public void keyReleased(KeyEvent e) {
+                int key = e.getKeyCode();
+                // 키를 뗐을 때 공이 즉시 멈추도록 설정
+                if (key == KeyEvent.VK_LEFT || key == KeyEvent.VK_A ||
+                    key == KeyEvent.VK_RIGHT || key == KeyEvent.VK_D) {
+                    ball.setVx(0);
+                }
+            }
+        });
     }
     
     // 그리기 전용 GameManager의 내부 클래스
@@ -69,9 +95,9 @@ public class GameManager extends JFrame implements ActionListener {
 		private void drawBlocks(Graphics g) {
 			for (Block b : blocks) {
                 g.setColor(Color.DARK_GRAY);
-                g.fillRect(b.getX(), b.getY(), BLOCK_SIZE, BLOCK_SIZE);
+                g.fillRect(b.getX(), b.getY(), TILE_SIZE, TILE_SIZE);
                 g.setColor(Color.BLACK);
-                g.drawRect(b.getX(), b.getY(), BLOCK_SIZE, BLOCK_SIZE);
+                g.drawRect(b.getX(), b.getY(), TILE_SIZE, TILE_SIZE);
             }
 		}
     }
@@ -83,19 +109,14 @@ public class GameManager extends JFrame implements ActionListener {
         for (Block b : blocks) {
             if (ballRect.intersects(b.getBounds())) {
                 // 공이 떨어지는 중(vy > 0)에 블록 윗면에 닿았을 때만 튕기게 처리
-                if (ball.getVy() > 0 && ball.getY() + ball.getR() < b.getY() + BLOCK_SIZE) {
+                if (ball.getVy() > 0 && ball.getY() + ball.getR() < b.getY() + TILE_SIZE) {
                     ball.setY(b.getY() - (ball.getR() * 2)); // 위치 보정
                     ball.setVy(JUMP_POWER); // 튕기기
                 }
             }
         }
-        
-        // 화면 밖으로 나가는 것 방지 (바닥)
-        if (ball.getY() + (ball.getR() * 2) > 750) {
-            ball.setY(750 - (ball.getR() * 2));
-            ball.setVy(JUMP_POWER);
-        }
     }
+    
 
     public static GameManager getGameManager() {
         return instance;
@@ -109,8 +130,9 @@ public class GameManager extends JFrame implements ActionListener {
     private void update() {
         // 1. 중력 적용: 속도에 중력을 더함
         ball.setVy(ball.getVy() + GRAVITY);
-        // 2. 위치 업데이트: 위치에 속도를 더함
-        ball.setY((int)(ball.getY() + ball.getVy()));
+        // 2. 위치 업데이트
+        ball.setX((int)(ball.getX() + ball.getVx())); // 좌우
+        ball.setY((int)(ball.getY() + ball.getVy())); // 상하
         // 3. 블럭과의 충돌 체크
         checkCollision();
     }

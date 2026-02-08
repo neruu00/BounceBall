@@ -3,19 +3,19 @@ package Game;
 import java.awt.Rectangle;
 
 public class Block {
-	static private final int SIZE = 40;
-	private int x, y;
+	private int x, y, size;
 	
-	public Block(int x, int y) {
+	public Block(int x, int y, int size) {
 		this.x = x;
 		this.y = y;
+		this.size = size;
 	}
 	
 	public Rectangle getBounds() {
-		return new Rectangle(x, y, SIZE, SIZE);
+		return new Rectangle(x, y, size, size);
 	}
 	
 	public int getX() { return x; }
     public int getY() { return y; }
-    public static int getSIZE() { return SIZE; }
+    public int getSize() { return size; }
 }
