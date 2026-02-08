@@ -105,21 +105,6 @@ public class GameManager extends JFrame implements ActionListener {
         TILE_SIZE = mapData.getTileSize();
     }
     
-    private void checkCollision() {
-        // 공의 현재 영역 계산
-        Rectangle ballRect = new Rectangle(ball.getX(), ball.getY(), ball.getR() * 2, ball.getR() * 2);
-
-        for (Block b : blocks) {
-            if (ballRect.intersects(b.getBounds())) {
-                // 공이 떨어지는 중(vy > 0)에 블록 윗면에 닿았을 때만 튕기게 처리
-                if (ball.getVy() > 0 && ball.getY() + ball.getR() < b.getY() + TILE_SIZE) {
-                    ball.setY(b.getY() - (ball.getR() * 2)); // 위치 보정
-                    ball.setVy(JUMP_POWER); // 튕기기
-                }
-            }
-        }
-    }
-    
     // X축 충돌 (옆면)
     private void checkHorizontalCollision() {
         Rectangle ballRect = new Rectangle(ball.getX(), ball.getY(), ball.getR() * 2, ball.getR() * 2);
@@ -151,12 +136,12 @@ public class GameManager extends JFrame implements ActionListener {
                 double ballCenterY = ball.getY() + ball.getR();
                 double blockCenterY = b.getY() + (TILE_SIZE / 2.0);
 
-                if (ballCenterY < blockCenterY) { // 블록의 위쪽에서 충돌 (밟기)
+                if (ballCenterY < blockCenterY) { // 블록의 위쪽에서 충돌
                     ball.setY(b.getY() - (ball.getR() * 2));
                     ball.setVy(JUMP_POWER); // 튕겨 올라감
-                } else { // 블록의 아래쪽에서 충돌 (머리 박기)
+                } else { // 블록의 아래쪽에서 충돌
                     ball.setY(b.getY() + TILE_SIZE);
-                    ball.setVy(0.5); // 툭 떨어짐
+                    ball.setVy(0.5); // 아래로 튕겨 떨어짐
                 }
                 ballRect.setLocation(ball.getX(), ball.getY());
             }
